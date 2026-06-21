@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>高専生専用・最強レポート便利屋</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+    
     <style>
         body { background-color: #f4f6f9; font-family: 'Helvetica Neue', Arial, sans-serif; }
         .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -14,9 +25,22 @@
         .btn-success:hover { background-color: #059669; }
         .btn-warning { background-color: #f59e0b; color: white; border: none; }
         .btn-warning:hover { background-color: #d97706; color: white; }
-        #result-display { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; min-height: 200px; white-space: pre-wrap; }
         
-        /* 🔑 ログイン画面専用のスタイル */
+        #result-display { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; min-height: 200px; font-size: 15px; line-height: 1.8; color: #1e293b; }
+        
+        .report-h1 { font-size: 22px; font-weight: bold; color: #0f172a; border-bottom: 2px solid #cbd5e1; padding-bottom: 8px; margin-top: 32px; margin-bottom: 16px; display: block; }
+        .report-h2 { font-size: 18px; font-weight: bold; color: #334155; margin-top: 24px; margin-bottom: 12px; display: block; }
+        
+        table.report-table { background-color: white !important; margin: 24px 0; font-size: 14.5px; box-shadow: 0 1px 3px rgba(0,0,0,0.02); }
+        table.report-table th { background-color: #f1f5f9 !important; color: #0f172a !important; font-weight: 700; text-align: center; border-bottom: 2px solid #e2e8f0 !important; }
+        table.report-table td { padding: 10px 14px !important; vertical-align: middle; }
+        
+        .report-img-container { text-align: center; margin: 24px 0; padding: 10px; background-color: #f8fafc; border-radius: 8px; border: 1px dashed #cbd5e1; }
+        .report-img { max-width: 75%; max-height: 380px; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 10px rgba(0,0,0,0.06); background-color: white; }
+        
+        .file-badge { background-color: #e2e8f0; color: #334155; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
+        .file-remove { color: #ef4444; cursor: pointer; font-weight: bold; font-size: 16px; }
+        
         .login-container { max-width: 400px; margin-top: 100px; }
         .d-none { display: none !important; }
     </style>
@@ -46,7 +70,7 @@
         <div class="d-flex justify-content-between align-items-center mb-5">
             <div>
                 <h1 class="fw-bold text-dark m-0">⚡ レポート自動生成・進化型便利屋 ⚡</h1>
-                <p class="text-muted m-0">実験用・応用用の切り替え ＆ 生成後の悪麻の追加修正機能搭載</p>
+                <p class="text-muted m-0">OpenClaw自動巡回 ＆ 写真データ自動埋め込み配置モデル</p>
             </div>
             <button class="btn btn-outline-danger btn-sm fw-bold" id="logout-btn">ログアウト</button>
         </div>
@@ -56,37 +80,38 @@
             <form id="report-form">
                 <div class="mb-3">
                     <label class="form-label fw-semibold">レポートのタイトル</label>
-                    <input type="text" class="form-control" id="title" placeholder="例: 反結合性回路における周波数特性の測定" required>
+                    <input type="text" class="form-control" id="title" placeholder="例: インバータ応用回路における高調波抑制技術" required>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">レポートの種類（構成の自動切り替え）</label>
                     <select class="form-select" id="report_type" required>
                         <option value="experiment">🧪 電気電子工学実験用 (目的/原理/方法/結果/考察/結論)</option>
-                        <option value="application">💡 電気応用用 (概要/背景/社会実装動向/課題/展望)</option>
+                        <option value="application_basic">💡 電気応用用：発展回路なし (概要/原理/社会実装/課題/展望)</option>
+                        <option value="application_advanced">⚡ 電気応用用：発展回路あり (概要/原理/【発展回路の動作解析】/社会実装/課題/展望)</option>
                     </select>
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label fw-semibold">追加の作成指示・メモ（自由入力）</label>
-                    <textarea class="form-control" id="instruction" rows="3" placeholder="例: オシロスコープの波形データの数値を重視して考察を厚くして。です・ます調ではなく、である調で。"></textarea>
+                    <textarea class="form-control" id="instruction" rows="3" placeholder="例: 発電回路のFETのスイッチング損失に焦点を当てて。である調で。"></textarea>
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">参考資料ファイル (複数選択可 / PDF・画像)</label>
-                    <input type="file" class="form-control" id="files" multiple required>
-                    <small class="text-muted">※実験プリントのPDFや、ノート・測定データの写真を何枚でもブチ込めます。</small>
+                    <label class="form-label fw-semibold">参考資料ファイル (PDF・画像 / 1つずつ何回でも追加可能)</label>
+                    <input type="file" class="form-control" id="main-file-input">
+                    <div id="main-file-list" class="mt-2 d-flex flex-wrap gap-2"></div>
                 </div>
 
                 <button type="submit" class="btn btn-primary w-100 fw-bold py-2" id="submit-btn">
-                    Google検索と連動してレポートを生成する
+                    OpenClawを潜入させてレポートを生成する
                 </button>
             </form>
         </div>
 
         <div id="loading" class="text-center d-none my-4">
             <div class="spinner-border text-primary mb-2" role="status"></div>
-            <p class="fw-semibold text-primary" id="loading-text">Geminiが資料を解析し、自動Googleクローリングを併用してレポートを執筆中...</p>
+            <p class="fw-semibold text-primary" id="loading-text">エージェントが稼働中...</p>
         </div>
 
         <div id="result-section" class="card p-4 d-none">
@@ -100,12 +125,16 @@
             <hr>
 
             <div class="bg-light p-3 rounded">
-                <h5 class="fw-bold text-dark mb-2">🔄 AIへの追加修正・わがまま指示</h5>
-                <p class="small text-muted mb-2">生成された文章に納得がいかない場合、ここに文句を書けばその通りに書き直してくれます。</p>
-                <div class="input-group">
-                    <input type="text" class="form-control" id="edit-instruction" placeholder="例: 考察の3番目をもっと専門用語を使って肉付けして。数式を交えて解説を追加して。">
-                    <button class="btn btn-warning fw-bold" id="edit-btn">この指示で修正する</button>
+                <h5 class="fw-bold text-dark mb-2">🔄 AIへの追加修正・わがまま指示（ファイル追加対応）</h5>
+                <p class="small text-muted mb-2">生成後に、さらに追加の実験データ画像やPDFを添付して書き直させることができます。</p>
+                <div class="mb-2">
+                    <input type="text" class="form-control mb-2" id="edit-instruction" placeholder="例: 新しく追加した資料のデータをもとに、高調波の考察を肉付けして。">
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="edit-file-input" style="max-width: 300px;">
+                        <button class="btn btn-warning fw-bold" id="edit-btn">この指示とファイルで修正する</button>
+                    </div>
                 </div>
+                <div id="edit-file-list" class="d-flex flex-wrap gap-2 mt-2"></div>
             </div>
         </div>
     </div>
@@ -114,25 +143,15 @@
         let currentResultText = "";
         let authToken = localStorage.getItem("auth_token") || "";
 
-        // 🔑 起動時にログイン状態をチェックする関数
+        let mainFilesArray = [];
+        let editFilesArray = [];
+
         async function checkLogin() {
-            if (!authToken) {
-                showLogin();
-                return;
-            }
-            // 保存されているトークンが有効かサーバーに聞いてみる
+            if (!authToken) { showLogin(); return; }
             try {
-                const response = await fetch("/auth-check", {
-                    headers: { "Authorization": `Basic ${authToken}` }
-                });
-                if (response.ok) {
-                    showMain();
-                } else {
-                    showLogin();
-                }
-            } catch (err) {
-                showLogin();
-            }
+                const response = await fetch("/auth-check", { headers: { "Authorization": `Basic ${authToken}` } });
+                if (response.ok) { showMain(); } else { showLogin(); }
+            } catch (err) { showLogin(); }
         }
 
         function showLogin() {
@@ -145,50 +164,153 @@
             document.getElementById("main-section").classList.remove("d-none");
         }
 
-        // 🔑 ログインフォームが送信されたとき
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const u = document.getElementById("login-username").value;
             const p = document.getElementById("login-password").value;
             const errorDiv = document.getElementById("login-error");
-
-            // ユーザー名とパスワードをBasic認証用のBase64トークンに変換
             const token = btoa(`${u}:${p}`);
 
             try {
-                const response = await fetch("/auth-check", {
-                    headers: { "Authorization": `Basic ${token}` }
-                });
+                const response = await fetch("/auth-check", { headers: { "Authorization": `Basic ${token}` } });
                 if (response.ok) {
                     authToken = token;
-                    localStorage.setItem("auth_token", token); // ブラウザに記憶
+                    localStorage.setItem("auth_token", token);
                     errorDiv.classList.add("d-none");
                     showMain();
-                } else {
-                    errorDiv.classList.remove("d-none");
-                }
-            } catch (err) {
-                alert("通信エラーが発生しました。");
-            }
+                } else { errorDiv.classList.remove("d-none"); }
+            } catch (err) { alert("通信エラーが発生しました。"); }
         });
 
-        // 🚪 ログアウトボタン
         document.getElementById("logout-btn").addEventListener("click", () => {
             localStorage.removeItem("auth_token");
             authToken = "";
             location.reload();
         });
 
-        // 📝 新規生成ボタンが押されたとき
+        function renderFilesBadge(listId, filesArray) {
+            const listDiv = document.getElementById(listId);
+            listDiv.innerHTML = "";
+            filesArray.forEach((file, index) => {
+                const badge = document.createElement("div");
+                badge.className = "file-badge";
+                badge.innerText = file.name;
+                
+                const removeBtn = document.createElement("span");
+                removeBtn.className = "file-remove";
+                removeBtn.innerText = "×";
+                removeBtn.addEventListener("click", () => {
+                    filesArray.splice(index, 1);
+                    renderFilesBadge(listId, filesArray);
+                });
+                
+                badge.appendChild(removeBtn);
+                listDiv.appendChild(badge);
+            });
+        }
+
+        document.getElementById("main-file-input").addEventListener("change", (e) => {
+            for (let file of e.target.files) { mainFilesArray.push(file); }
+            renderFilesBadge("main-file-list", mainFilesArray);
+            e.target.value = "";
+        });
+
+        document.getElementById("edit-file-input").addEventListener("change", (e) => {
+            for (let file of e.target.files) { editFilesArray.push(file); }
+            renderFilesBadge("edit-file-list", editFilesArray);
+            e.target.value = "";
+        });
+
+        function renderFormattedResult(rawText) {
+            const displayDiv = document.getElementById("result-display");
+            displayDiv.innerHTML = "";
+            
+            const lines = rawText.split("\n");
+            let i = 0;
+            
+            while (i < lines.length) {
+                const line = lines[i];
+                const trimmed = line.trim();
+                
+                if (trimmed === "") { i++; continue; }
+                
+                if (trimmed.startsWith("[H1] ")) {
+                    const el = document.createElement("span");
+                    el.className = "report-h1";
+                    el.innerText = trimmed.replace("[H1] ", "");
+                    displayDiv.appendChild(el);
+                    i++;
+                } else if (trimmed.startsWith("[H2] ")) {
+                    const el = document.createElement("span");
+                    el.className = "report-h2";
+                    el.innerText = trimmed.replace("[H2] ", "");
+                    displayDiv.appendChild(el);
+                    i++;
+                } else if (trimmed.startsWith("[IMAGE: ") && trimmed.endsWith("]")) {
+                    // 📐【修正箇所】 Pythonの endswith から JavaScript 正式の endsWith へ修正完了！
+                    const imgFilename = trimmed.replace("[IMAGE: ", "").replace("]", "");
+                    const container = document.createElement("div");
+                    container.className = "report-img-container";
+                    
+                    const img = document.createElement("img");
+                    img.src = `/images/${imgFilename}`;
+                    img.className = "report-img";
+                    
+                    container.appendChild(img);
+                    displayDiv.appendChild(container);
+                    i++;
+                } else if (trimmed.startsWith("|")) {
+                    const tableContainer = document.createElement("div");
+                    tableContainer.className = "table-responsive";
+                    const table = document.createElement("table");
+                    table.className = "table table-bordered table-striped report-table mb-4";
+                    const thead = document.createElement("thead");
+                    const tbody = document.createElement("tbody");
+                    table.appendChild(thead); table.appendChild(tbody);
+                    
+                    let isFirstRow = true;
+                    while (i < lines.length && lines[i].trim().startsWith("|")) {
+                        const tLine = lines[i].trim();
+                        if (/^\|[\s*-:|]*\|$/.test(tLine)) { i++; continue; }
+                        const cells = tLine.split("|").slice(1, -1).map(c => c.trim());
+                        const tr = document.createElement("tr");
+                        cells.forEach(cellText => {
+                            const cell = document.createElement(isFirstRow ? "th" : "td");
+                            cell.innerText = cellText; tr.appendChild(cell);
+                        });
+                        if (isFirstRow) { thead.appendChild(tr); isFirstRow = false; } 
+                        else { tbody.appendChild(tr); }
+                        i++;
+                    }
+                    tableContainer.appendChild(table); displayDiv.appendChild(tableContainer);
+                } else if (trimmed.startsWith("- ") || trimmed.startsWith("* ")) {
+                    const ul = document.createElement("ul");
+                    ul.className = "mb-3 ps-4";
+                    while (i < lines.length && (lines[i].trim().startsWith("- ") || lines[i].trim().startsWith("* "))) {
+                        const li = document.createElement("li");
+                        li.innerText = lines[i].trim().substring(2);
+                        ul.appendChild(li); i++;
+                    }
+                    displayDiv.appendChild(ul);
+                } else {
+                    const p = document.createElement("p");
+                    p.className = "mb-3 text-justify"; p.innerText = line;
+                    displayDiv.appendChild(p); i++;
+                }
+            }
+            if (window.MathJax) { window.MathJax.typesetPromise(); }
+        }
+
         document.getElementById("report-form").addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (mainFilesArray.length === 0) return alert("参考資料ファイルを最低1つ以上追加してください。");
+
             const submitBtn = document.getElementById("submit-btn");
             const loading = document.getElementById("loading");
             const resultSection = document.getElementById("result-section");
             
-            submitBtn.disabled = true;
-            loading.classList.remove("d-none");
-            document.getElementById("loading-text").innerText = "Geminiが資料を解析し、自動Googleクローリングを併用してレポートを執筆中...";
+            submitBtn.disabled = true; loading.classList.remove("d-none");
+            document.getElementById("loading-text").innerText = "OpenClawが対象の技術サイトを自動クローリング中 ＆ Geminiが数式を組み立てながら執筆中...";
             resultSection.classList.add("d-none");
 
             const formData = new FormData();
@@ -196,105 +318,72 @@
             formData.append("report_type", document.getElementById("report_type").value);
             formData.append("instruction", document.getElementById("instruction").value);
             
-            const fileInput = document.getElementById("files");
-            for (let i = 0; i < fileInput.files.length; i++) {
-                formData.append("files", fileInput.files[i]);
-            }
+            mainFilesArray.forEach(file => { formData.append("files", file); });
 
             try {
                 const response = await fetch("/process-report", { 
-                    method: "POST", 
-                    body: formData,
-                    headers: { "Authorization": `Basic ${authToken}` } // 🔑 認証情報を付与
+                    method: "POST", body: formData, headers: { "Authorization": `Basic ${authToken}` }
                 });
                 const data = await response.json();
-                
                 if (response.ok) {
                     currentResultText = data.result;
-                    document.getElementById("result-display").innerText = currentResultText;
+                    renderFormattedResult(currentResultText);
                     resultSection.classList.remove("d-none");
                     window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' });
-                } else {
-                    alert("エラーが発生しました: " + (data.detail || "不明なエラー"));
-                }
-            } catch (err) {
-                alert("通信エラーが発生しました。");
-            } finally {
-                submitBtn.disabled = false;
-                loading.classList.add("d-none");
-            }
+                } else { alert("エラー: " + (data.detail || "不明なエラー")); }
+            } catch (err) { alert("通信エラーが発生しました。"); }
+            finally { submitBtn.disabled = false; loading.classList.add("d-none"); }
         });
 
-        // 🔄 追加修正ボタンが押されたとき
         document.getElementById("edit-btn").addEventListener("click", async () => {
             const editInstruction = document.getElementById("edit-instruction").value;
-            if (!editInstruction) return alert("修正の指示を入力してください.");
+            if (!editInstruction) return alert("修正の指示を入力してください。");
 
             const editBtn = document.getElementById("edit-btn");
             const loading = document.getElementById("loading");
+            editBtn.disabled = true; loading.classList.remove("d-none");
+            document.getElementById("loading-text").innerText = "AIが追加の添付ファイルと指示に従って数式・文章・画像を再編集中...";
+
+            const formData = new FormData();
+            formData.append("title", document.getElementById("title").value);
+            formData.append("current_result", currentResultText);
+            formData.append("edit_instruction", editInstruction);
             
-            editBtn.disabled = true;
-            loading.classList.remove("d-none");
-            document.getElementById("loading-text").innerText = "AIが指示通りにレポートを修正・肉付け中...";
+            editFilesArray.forEach(file => { formData.append("files", file); });
 
             try {
                 const response = await fetch("/edit-report", {
                     method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "Authorization": `Basic ${authToken}` // 🔑 認証情報を付与
-                    },
-                    body: JSON.stringify({
-                        title: document.getElementById("title").value,
-                        current_result: currentResultText,
-                        edit_instruction: editInstruction
-                    })
+                    headers: { "Authorization": `Basic ${authToken}` },
+                    body: formData
                 });
                 const data = await response.json();
-
                 if (response.ok) {
                     currentResultText = data.result;
-                    document.getElementById("result-display").innerText = currentResultText;
+                    renderFormattedResult(currentResultText);
+                    
+                    editFilesArray = [];
+                    document.getElementById("edit-file-list").innerHTML = "";
                     document.getElementById("edit-instruction").value = ""; 
-                    alert("修正が完了しました！");
-                } else {
-                    alert("修正エラー: " + data.detail);
-                }
-            } catch (err) {
-                alert("通信エラーが発生しました。");
-            } finally {
-                editBtn.disabled = false;
-                loading.classList.add("d-none");
-            }
+                    alert("ファイルの読み込みと画像の自動埋め込み修正が完了しました！");
+                } else { alert("修正エラー: " + data.detail); }
+            } catch (err) { alert("通信エラーが発生しました。"); }
+            finally { editBtn.disabled = false; loading.classList.add("d-none"); }
         });
 
-        // 💾 Wordダウンロードボタンが押されたとき
         document.getElementById("download-btn").addEventListener("click", async () => {
             const title = document.getElementById("title").value;
             const response = await fetch("/download/docx", {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "Authorization": `Basic ${authToken}` // 🔑 認証情報を付与
-                },
+                method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Basic ${authToken}` },
                 body: JSON.stringify({ title: title, result: currentResultText })
             });
-            
             if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `${title}.docx`;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-            } else {
-                alert("ダウンロードに失敗しました。");
-            }
+                const blob = await response.blob(); const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a"); a.href = url; a.download = `${title}.docx`;
+                document.body.appendChild(a); a.click(); a.remove();
+            } else { alert("ダウンロードに失敗しました。"); }
         });
 
-        // 🚀 ページ読み込み時にログインチェックを実行
         checkLogin();
     </script>
 </body>

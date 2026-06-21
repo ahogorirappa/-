@@ -5,3 +5,4 @@ python-dotenv
 python-docx
 python-multipart
 httpx
+latex2mathml
