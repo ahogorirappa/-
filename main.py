@@ -51,7 +51,7 @@ class DownloadRequest(BaseModel):
 # 🦞 OpenClaw 自律クローリング実行ヘルパー
 # ----------------------------------------------------------------
 async def run_openclaw_research(title: str) -> str:
-    prompt_for_claw = f"「{title}」について、電気工学・実験原理の観点から最新の技術動向、回路構成、数式的な背景をWebブラウザ等で自動検索・クローリングし、詳細な調査結果を日本語のMarkdownテキストとしてまとめてください。"
+    prompt_for_claw = f"「{title}」について、電気工学・実験原理の観点から最新の技術動向、回路構成、数式的な背景をWebブラウザ等で自動検索・クローリングし, 詳細な調査結果を日本語のMarkdownテキストとしてまとめてください。"
     
     async with httpx.AsyncClient(timeout=120.0) as http_client:
         try:
@@ -120,14 +120,13 @@ async def process_report(
     ALLOWED_MIMETYPES = ["application/pdf", "image/jpeg", "image/png", "image/webp"]
     
     gemini_files = []
-    saved_image_mappings = [] # AIに画像名を教え込むためのマッピングリスト
+    saved_image_mappings = []
     
     try:
         for file in files:
             if file.filename == "": continue
             file_bytes = await file.read()
             
-            # 📸 アップロードされたファイルが画像の場合、ローカルサーバーに一意の名前で保存する
             if file.content_type in ["image/jpeg", "image/png", "image/webp"]:
                 ext = os.path.splitext(file.filename)[1]
                 unique_filename = f"{uuid.uuid4()}{ext}"
@@ -183,7 +182,7 @@ async def process_report(
             【レポート構成および記述内容の厳格な指定】
             [H1] 1. 総合概要 (Executive Summary)
             [H1] 2. 技術的背景および基本原理
-            [H1] 3. 発展回路（応用回路）の構成と動作解析
+            [H1] 3. 発発展回路（応用回路）の構成と動作解析
             [H1] 4. 現在の主な応用例・社会実装動向
             [H1] 5. 現状の技術的課題とその対策
             [H1] 6. 今後の展望および提言
@@ -198,7 +197,6 @@ async def process_report(
             [H1] 5. 今後の展望および提言
             """
 
-        # Geminiへ利用可能な画像タグの一覧を提示する
         image_instruction_str = ""
         if saved_image_mappings:
             image_instruction_str = "【利用可能な画像資料の一覧】:\n"
@@ -216,8 +214,7 @@ async def process_report(
         {type_prompt}
         
         【超重要ルール：画像の自動挿入配置】
-        ・上記に「利用可能な画像資料の一覧」がある場合、その内容（グラフや実験波形など）を分析し、レポートの文脈に合わせて最も適切な位置（主に「3. 実験方法および回路構成」や「4. 実験結果」の章の本文中）に、該当する画像の挿入用指定タグ（例: `[IMAGE: xxx-xxx.ext]`) を【必ず単独の行】として配置してください。
-        ・画像の前後には、必ず「図1に測定された時間波形を示す」といった、その画像の内容を説明する自然な学術的案内文章を記述してください。
+        ・上記に「利用可能な画像資料の一覧」がある場合、その内容を分析し、レポートの文脈に合わせて最も適切な位置に、該当する画像の挿入用指定タグ（例: `[IMAGE: xxx-xxx.ext]`) を【必ず単独の行】として配置してください。
         
         【超重要ルール：数式のアカデミック化】
         ・数式や理論式を出力する場合は、必ずインライン数式（$E=mc^2$）または独立数式（$$数式$$）のLaTeX表記を使用してください。
@@ -328,7 +325,15 @@ async def edit_report(
 @app.post("/download/docx")
 async def download_docx(request: DownloadRequest, username: str = Depends(authenticate)):
     doc = Document()
-    doc.add_heading(request.title, level=1)
+    
+    # 📄 【新設】1枚目を独立した「表紙専用ページ」にする自動改ページロジック
+    for _ in range(6): # タイトルの上に適度な余白（空行）を作って中央に寄せる
+        doc.add_paragraph()
+        
+    title_heading = doc.add_heading(request.title, level=1)
+    title_heading.alignment = 1 # タイトル文字を中央揃えに配置
+    
+    doc.add_page_break() # 👈 ここで強制的にページを区切ることで、1枚目を完璧な表紙にする！
     
     lines = request.result.split("\n")
     i = 0
@@ -347,15 +352,14 @@ async def download_docx(request: DownloadRequest, username: str = Depends(authen
             doc.add_heading(trimmed.replace("[H2] ", ""), level=3)
             i += 1
         elif trimmed.startswith("[IMAGE: ") and trimmed.endswith("]"):
-            # 📸 【新設】[IMAGE: xxx.png] タグを検知したら、Wordに本物の写真を埋め込む
             img_filename = trimmed.replace("[IMAGE: ", "").replace("]", "")
             img_path = os.path.join(UPLOAD_DIR, img_filename)
             if os.path.exists(img_path):
                 try:
                     p = doc.add_paragraph()
-                    p.alignment = 1 # 1 = Center (画像見出しを中央揃えにする)
+                    p.alignment = 1
                     run = p.add_run()
-                    run.add_picture(img_path, width=Inches(4.5)) # 横幅4.5インチで綺麗にリサイズ挿入
+                    run.add_picture(img_path, width=Inches(4.5))
                 except:
                     doc.add_paragraph(f"【画像の展開失敗: {img_filename}】")
             else:
