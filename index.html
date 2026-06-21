@@ -207,7 +207,6 @@
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             
-            // 🔒【修正点】連打防止ロック！押した瞬間にボタンを無効化して2重送信を徹底ガード
             const loginBtn = document.getElementById("login-submit-btn");
             loginBtn.disabled = true;
             loginBtn.innerText = "認証中...";
@@ -227,14 +226,12 @@
                     renderHistory();
                 } else { 
                     errorDiv.classList.remove("d-none"); 
-                    loginBtn.disabled = false; // 失敗時はボタンを戻す
+                    loginBtn.disabled = false;
                     loginBtn.innerText = "ログイン";
                 }
             } catch (err) { 
-                // 連打による通信キャンセルエラーを完全に無視して正常処理へ繋ぐ防壁
                 loginBtn.disabled = false;
                 loginBtn.innerText = "ログイン";
-                // 内部トークンが正しい場合はそのまま無理やり中に入れるようにフォールバック
                 checkLogin();
             }
         });
@@ -341,29 +338,47 @@
                 
                 if (trimmed === "") { i++; continue; }
                 
-                if (trimmed.startsWith("[H1] ")) {
+                // 🔨 【画面側シャープ救済】 [H1] だけでなく、AIが勝手に出した「# 」でも見出しとしてパースする
+                if (trimmed.startsWith("[H1] ") || trimmed.startsWith("# ")) {
                     const el = document.createElement("span");
                     el.className = "report-h1";
-                    el.innerText = trimmed.replace("[H1] ", "");
+                    el.innerText = trimmed.replace("[H1] ", "").replace("# ", "");
                     displayDiv.appendChild(el);
                     i++;
-                } else if (trimmed.startsWith("[H2] ")) {
+                } else if (trimmed.startsWith("[H2] ") || trimmed.startsWith("## ")) {
                     const el = document.createElement("span");
                     el.className = "report-h2";
-                    el.innerText = trimmed.replace("[H2] ", "");
+                    el.innerText = trimmed.replace("[H2] ", "").replace("## ", "");
                     displayDiv.appendChild(el);
                     i++;
-                } else if (trimmed.startsWith("[IMAGE: ") && trimmed.endsWith("]")) {
-                    const imgFilename = trimmed.replace("[IMAGE: ", "").replace("]", "");
-                    const container = document.createElement("div");
-                    container.className = "report-img-container";
-                    
-                    const img = document.createElement("img");
-                    img.src = `/images/${imgFilename}`;
-                    img.className = "report-img";
-                    
-                    container.appendChild(img);
-                    displayDiv.appendChild(container);
+                } else if (trimmed.startsWith("### ")) {
+                    const el = document.createElement("span");
+                    el.className = "report-h2";
+                    el.style.fontSize = "16px";
+                    el.style.color = "#475569";
+                    el.innerText = trimmed.replace("### ", "");
+                    displayDiv.appendChild(el);
+                    i++;
+                // 📸 【画面側画像救済】 厳密な行一致でなく、行の中に画像タグが含まれていれば正規表現でぶっこ抜く仕様に超絶強化！
+                } else if (trimmed.includes("[IMAGE: ")) {
+                    const match = trimmed.match(/\[IMAGE:\s*([^\]\s]+)\]/);
+                    if (match) {
+                        const imgFilename = match[1].trim();
+                        const container = document.createElement("div");
+                        container.className = "report-img-container";
+                        
+                        const img = document.createElement("img");
+                        img.src = `/images/${imgFilename}`;
+                        img.className = "report-img";
+                        
+                        container.appendChild(img);
+                        displayDiv.appendChild(container);
+                    } else {
+                        // マッチしない場合は通常の段落として安全に出力
+                        const p = document.createElement("p");
+                        p.className = "mb-3 text-justify"; p.innerText = line;
+                        displayDiv.appendChild(p);
+                    }
                     i++;
                 } else if (trimmed.startsWith("|")) {
                     const tableContainer = document.createElement("div");

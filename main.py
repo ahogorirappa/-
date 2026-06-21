@@ -13,7 +13,6 @@ from google.genai import types
 from dotenv import load_dotenv
 from docx import Document
 from docx.shared import Inches
-# 📐 Wordの本物の数式オブジェクトを生成するための特殊インポート
 from docx.oxml import parse_xml
 from docx.oxml.ns import nsdecls
 import httpx
@@ -31,8 +30,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/images", StaticFiles(directory=UPLOAD_DIR), name="images")
 
 def authenticate(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = os.getenv("WEB_USERNAME", "1")
-    correct_password = os.getenv("WEB_PASSWORD", "1")
+    correct_username = os.getenv("WEB_USERNAME", "daigo")
+    correct_password = os.getenv("WEB_PASSWORD", "jyuubei3")
     if credentials.username != correct_username or credentials.password != correct_password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -74,12 +73,11 @@ async def run_openclaw_research(title: str) -> str:
             return f"【システムノート】OpenClawデーモンが不通のため、標準検索でフォールバックします。 (詳細: {str(e)})"
 
 # ----------------------------------------------------------------
-# 📐 【劇的進化】Word用の本物の数式オブジェクト自動生成ヘルパー
+# 📐 Word用の数式パース＆書き込みヘルパー
 # ----------------------------------------------------------------
 def add_math_to_paragraph(paragraph, latex_str):
     try:
         s = latex_str.strip().replace("\n", "")
-        # LaTeXの特殊表記を、Wordの数式エンジンが最も綺麗に認識できる記号表現に自動コンバート
         s = s.replace(r'\frac', '')
         s = s.replace(r'\omega', 'ω')
         s = s.replace(r'\pi', 'π')
@@ -95,12 +93,9 @@ def add_math_to_paragraph(paragraph, latex_str):
         s = s.replace('{', '(').replace('}', ')')
         
         if s:
-            # 📐 Word公式の数式オブジェクト（oMath）のXML構造を直接生成して段落の末尾に埋め込む！
-            # これにより、Wordを開いたときに自動的に「数式ツール」のデザインとして美しく配置される
             omath_xml = f'<m:oMath {nsdecls("m")}><m:r><m:t>{s}</m:t></m:r></m:oMath>'
             paragraph._p.append(parse_xml(omath_xml))
     except:
-        # 万が一パースエラーが起きた場合は、生の文字列として安全にフォールバック
         paragraph.add_run(f" {latex_str} ")
 
 def parse_and_write_text_with_math(paragraph, text):
@@ -171,7 +166,7 @@ async def process_report(
             type_prompt = """
             【レポート構成および記述内容の厳格な指定】
             以下の構成に沿って、各章とも学術論文レベルの圧倒的な情報量と厳密な専門用語（〜である調）で詳細に執筆してください。
-            章タイトル（大見出し）の行頭には必ず [H1] を、節タイトル（中見出し）の行頭には必ず [H2] を付与してください。
+            章タイトル（大見出し）の行頭には必ず [H1] または # を、節タイトル（中見出し）の行頭には必ず [H2] または ## を付与してください。
 
             [H1] 1. 実験目的
             [H1] 2. 実験原理
@@ -200,6 +195,7 @@ async def process_report(
         elif report_type == "application_advanced":
             type_prompt = """
             【レポート構成および記述内容の厳格な指定】
+            章タイトルの行頭には必ず [H1] または # を、節タイトルの行頭には必ず [H2] または ## を付与してください。
             [H1] 1. 総合概要 (Executive Summary)
             [H1] 2. 技術的背景および基本原理
             [H1] 3. 発展回路（応用回路）の構成と動作解析
@@ -210,6 +206,7 @@ async def process_report(
         else:
             type_prompt = """
             【レポート構成および記述内容の厳格な指定】
+            章タイトルの行頭には必ず [H1] または # を、節タイトルの行頭には必ず [H2] または ## を付与してください。
             [H1] 1. 総合概要 (Executive Summary)
             [H1] 2. 技術的背景および基本原理
             [H1] 3. 現在の主な応用例・社会実装動向
@@ -234,11 +231,12 @@ async def process_report(
         {type_prompt}
         
         【超重要ルール：画像の自動挿入配置】
-        ・上記に「利用可能な画像資料の一覧」がある場合、その内容を分析し、レポートの文脈に合わせて最も適切な位置に、該当する画像の挿入用指定タグ（例: `[IMAGE: xxx-xxx.ext]`) を【必ず単独の行】として配置してください。
+        *上記に「利用可能な画像資料の一覧」がある場合、その写真（グラフや実験波形）の内容を読み解き、レポートの文脈に合わせて最も適切な位置（主に「3. 実験方法」や「4. 実験結果」の本文中）に、該当する画像の挿入用指定タグ（例: `[IMAGE: xxx.png]`) を【必ず単独の行】として配置してください。
+        *Markdown標準の `![image](...)` 形式は絶対に使わず、指定された `[IMAGE: ファイル名]` の形式のみを出力してください。
         
         【超重要ルール：数式のアカデミック化】
         ・数式や理論式を出力する場合は、必ずインライン数式（$E=mc^2$）または独立数式（$$数式$$）のLaTeX表記を使用してください。
-        ・ただし、Wordファイルにエクスポートされた際にも数式構造が絶対に崩れないよう、複雑すぎる分数のネスト（分数の中にさらに分数が入る構造）は避け、必要に応じて `a/b` などの直線的な表記を組み合わせ、Wordの数式コンポーネントが処理しやすいスマートな構造で出力してください。
+        ・Wordファイルにエクスポートされた際にも数式構造が絶対に崩れないよう、複雑すぎる分数のネストは避け、必要に応じて `a/b` などの直線的な表記を組み合わせ、Wordの数式コンポーネントが処理しやすいスマートな構造で出力してください。
         
         【超重要ルール：データ羅列の表形式化】
         ・測定データや解析結果の箇条書きの羅列を出力にそのまま含めず、必ず人間が見やすい「Markdownの表（テーブル）形式」へと自動的に変換・整理して出力してください。
@@ -320,7 +318,7 @@ async def edit_report(
         
         【超重要ルール】
         ・新しく画像が追加された場合は、適切な位置に `[IMAGE: xxx.ext]` の形式で【単独行】として必ず画像を配置してください。
-        ・章タイトルの行頭には必ず [H1] を、節タイトルの行頭には必ず [H2] を維持または付与してください。
+        ・章タイトルの行頭には [H1] または # を、節タイトルの行頭には [H2] または ## を維持または付与してください。
         ・数式は必ず1行の $...$ または $$...$$ のLaTeX形式を死守してください。
         ・出力はそのままWordに変換されます。案内文や前置きは【絶対に】入れないでください。
         """
@@ -366,25 +364,39 @@ async def download_docx(request: DownloadRequest, username: str = Depends(authen
             i += 1
             continue
             
-        if trimmed.startswith("[H1] "):
-            doc.add_heading(trimmed.replace("[H1] ", ""), level=2)
+        # 🔨 【シャープ救済対策】 [H1] だけでなく、AIが勝手に出力した Markdownの「# 」も大見出しとしてパースする
+        if trimmed.startswith("[H1] ") or trimmed.startswith("# "):
+            clean_title = trimmed.replace("[H1] ", "").replace("# ", "")
+            doc.add_heading(clean_title, level=2)
             i += 1
-        elif trimmed.startswith("[H2] "):
-            doc.add_heading(trimmed.replace("[H2] ", ""), level=3)
+        elif trimmed.startswith("[H2] ") or trimmed.startswith("## "):
+            clean_title = trimmed.replace("[H2] ", "").replace("## ", "")
+            doc.add_heading(clean_title, level=3)
             i += 1
-        elif trimmed.startswith("[IMAGE: ") and trimmed.endswith("]"):
-            img_filename = trimmed.replace("[IMAGE: ", "").replace("]", "")
-            img_path = os.path.join(UPLOAD_DIR, img_filename)
-            if os.path.exists(img_path):
-                try:
-                    p = doc.add_paragraph()
-                    p.alignment = 1
-                    run = p.add_run()
-                    run.add_picture(img_path, width=Inches(4.5))
-                except:
-                    doc.add_paragraph(f"【画像の展開失敗: {img_filename}】")
+        elif trimmed.startswith("### "):
+            clean_title = trimmed.replace("### ", "")
+            doc.add_heading(clean_title, level=4)
+            i += 1
+        # 📸 【画像救済対策】 完全一致でなくても、行の中に [IMAGE: xxx] が含まれていれば正規表現でファイル名をぶっこ抜く仕様に強化
+        elif "[IMAGE: " in trimmed:
+            match = re.search(r'\[IMAGE:\s*([^\]\s]+)\]', trimmed)
+            if match:
+                img_filename = match.group(1).strip()
+                img_path = os.path.join(UPLOAD_DIR, img_filename)
+                if os.path.exists(img_path):
+                    try:
+                        p = doc.add_paragraph()
+                        p.alignment = 1
+                        run = p.add_run()
+                        run.add_picture(img_path, width=Inches(4.5))
+                    except:
+                        doc.add_paragraph(f"【画像の展開失敗: {img_filename}】")
+                else:
+                    doc.add_paragraph(f"【画像ファイル紛失: {img_filename}】")
             else:
-                doc.add_paragraph(f"【画像ファイル紛失: {img_filename}】")
+                # 念のため生テキストとして書き出す
+                p = doc.add_paragraph()
+                parse_and_write_text_with_math(p, line)
             i += 1
         elif trimmed.startswith("- ") or trimmed.startswith("* "):
             p = doc.add_paragraph(style='List Bullet')
