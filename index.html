@@ -3,260 +3,299 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIレポートジェネレーター Pro (Hybrid)</title>
+    <title>高専生専用・最強レポート便利屋</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #f0f4f8;
-            margin: 0;
-            padding: 40px 20px;
-            color: #333;
-        }
-        .container {
-            max-width: 650px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        }
-        h1 {
-            text-align: center;
-            color: #2C3E50;
-            margin-bottom: 30px;
-            font-size: 24px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #34495E;
-        }
-        input[type="text"], textarea, input[type="file"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 6px;
-            box-sizing: border-box;
-            font-size: 14px;
-            background-color: #f8fafc;
-        }
-        input[type="file"] {
-            background-color: #fff;
-            cursor: pointer;
-        }
-        .file-list-container {
-            margin-top: 10px;
-        }
-        .file-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: #f1f5f9;
-            padding: 8px 12px;
-            margin-bottom: 6px;
-            border-radius: 6px;
-            font-size: 13px;
-        }
-        .file-delete {
-            color: #ef4444;
-            font-weight: bold;
-            cursor: pointer;
-            padding: 2px 6px;
-        }
-        .file-delete:hover {
-            background: #fee2e2;
-            border-radius: 4px;
-        }
-        button {
-            width: 100%;
-            padding: 14px;
-            background-color: #1ABC9C;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        button:hover {
-            background-color: #16A085;
-        }
-        .loading {
-            text-align: center;
-            display: none;
-            color: #7f8c8d;
-            margin-top: 20px;
-            font-style: italic;
-        }
-        .result-box {
-            margin-top: 30px;
-            padding: 25px;
-            background: #fdfefe;
-            border-top: 4px solid #1ABC9C;
-            border-radius: 6px;
-            white-space: pre-wrap;
-            display: none;
-            line-height: 1.7;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
-        }
-        .download-box {
-            margin-top: 20px;
-            display: none;
-            text-align: center;
-        }
-        .btn-docx {
-            background-color: #2b579a;
-            width: auto;
-            display: inline-block;
-            padding: 12px 25px;
-            font-size: 15px;
-        }
-        .btn-docx:hover { background-color: #1e3d6b; }
+        body { background-color: #f4f6f9; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .btn-primary { background-color: #4f46e5; border: none; }
+        .btn-primary:hover { background-color: #4338ca; }
+        .btn-success { background-color: #10b981; border: none; }
+        .btn-success:hover { background-color: #059669; }
+        .btn-warning { background-color: #f59e0b; color: white; border: none; }
+        .btn-warning:hover { background-color: #d97706; color: white; }
+        #result-display { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; min-height: 200px; white-space: pre-wrap; }
+        
+        /* 🔑 ログイン画面専用のスタイル */
+        .login-container { max-width: 400px; margin-top: 100px; }
+        .d-none { display: none !important; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h1>📊 AIレポートジェネレーター Pro</h1>
-    
-    <div class="form-group">
-        <label for="title">作成するレポートのタイトル</label>
-        <input type="text" id="title" placeholder="例: 2026年度 マーケット動向調査報告書">
+    <div id="login-section" class="container login-container">
+        <div class="card p-4 text-center">
+            <h3 class="fw-bold mb-3 text-dark">⚡ クローリング便利屋 🔑</h3>
+            <p class="text-muted small">システムを起動するには認証が必要です</p>
+            <form id="login-form">
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">ユーザー名</label>
+                    <input type="text" id="login-username" class="form-control" placeholder="ユーザー名を入力" required>
+                </div>
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">パスワード</label>
+                    <input type="password" id="login-password" class="form-control" placeholder="パスワードを入力" required>
+                </div>
+                <div id="login-error" class="alert alert-danger d-none small p-2">認証情報が間違っています</div>
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">ログイン</button>
+            </form>
+        </div>
     </div>
 
-    <div class="form-group">
-        <label for="pdf-file">参考資料（選ぶたびに追加されていきます）</label>
-        <input type="file" id="pdf-file" accept=".pdf,image/*" multiple>
-        <div id="file-list" class="file-list-container"></div>
-    </div>
-    
-    <div class="form-group">
-        <label for="instruction">追加の指示やメモ（任意）</label>
-        <textarea id="instruction" rows="3" placeholder="例: OpenClawのデータから最新の競合分析を強調して清書して。"></textarea>
-    </div>
-    
-    <button id="submit-btn">OpenClaw×Geminiでレポートを作成</button>
-    
-    <div id="loading" class="loading">⏳ OpenClawがネット調査を行い、Geminiが爆速で清書しています...（数分かかる場合があります）</div>
-    <div id="result" class="result-box"></div>
-    
-    <div id="download-box" class="download-box">
-        <button id="btn-docx" class="btn-docx">📝 Word（.docx）として保存</button>
-    </div>
-</div>
+    <div id="main-section" class="container py-5 d-none" style="max-width: 900px;">
+        <div class="d-flex justify-content-between align-items-center mb-5">
+            <div>
+                <h1 class="fw-bold text-dark m-0">⚡ レポート自動生成・進化型便利屋 ⚡</h1>
+                <p class="text-muted m-0">実験用・応用用の切り替え ＆ 生成後の悪麻の追加修正機能搭載</p>
+            </div>
+            <button class="btn btn-outline-danger btn-sm fw-bold" id="logout-btn">ログアウト</button>
+        </div>
 
-<script>
-    let currentTitle = "";
-    let currentResult = "";
-    let uploadedFiles = [];
+        <div class="card p-4 mb-4">
+            <h4 class="mb-3 fw-bold">1. 新規レポートの生成</h4>
+            <form id="report-form">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">レポートのタイトル</label>
+                    <input type="text" class="form-control" id="title" placeholder="例: 反結合性回路における周波数特性の測定" required>
+                </div>
 
-    document.getElementById('pdf-file').addEventListener('change', (e) => {
-        const files = e.target.files;
-        for (let i = 0; i < files.length; i++) {
-            uploadedFiles.push(files[i]);
-        }
-        renderFileList();
-        e.target.value = '';
-    });
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">レポートの種類（構成の自動切り替え）</label>
+                    <select class="form-select" id="report_type" required>
+                        <option value="experiment">🧪 電気電子工学実験用 (目的/原理/方法/結果/考察/結論)</option>
+                        <option value="application">💡 電気応用用 (概要/背景/社会実装動向/課題/展望)</option>
+                    </select>
+                </div>
 
-    function renderFileList() {
-        const fileListDiv = document.getElementById('file-list');
-        fileListDiv.innerHTML = '';
-        
-        uploadedFiles.forEach((file, index) => {
-            const item = document.createElement('div');
-            item.className = 'file-item';
-            item.innerHTML = `
-                <span>📄 ${file.name}</span>
-                <span class="file-delete" onclick="removeFile(${index})">✕ 削除</span>
-            `;
-            fileListDiv.appendChild(item);
-        });
-    }
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">追加の作成指示・メモ（自由入力）</label>
+                    <textarea class="form-control" id="instruction" rows="3" placeholder="例: オシロスコープの波形データの数値を重視して考察を厚くして。です・ます調ではなく、である調で。"></textarea>
+                </div>
 
-    window.removeFile = function(index) {
-        uploadedFiles.splice(index, 1);
-        renderFileList();
-    };
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">参考資料ファイル (複数選択可 / PDF・画像)</label>
+                    <input type="file" class="form-control" id="files" multiple required>
+                    <small class="text-muted">※実験プリントのPDFや、ノート・測定データの写真を何枚でもブチ込めます。</small>
+                </div>
 
-    document.getElementById('submit-btn').addEventListener('click', async () => {
-        const title = document.getElementById('title').value;
-        const instruction = document.getElementById('instruction').value;
-        const resultBox = document.getElementById('result');
-        const downloadBox = document.getElementById('download-box');
-        const loading = document.getElementById('loading');
-        
-        if (!title) { alert('レポートのタイトルを入力してください！'); return; }
-        if (uploadedFiles.length === 0) { alert('参考資料のファイルを選択してください！'); return; }
-        
-        resultBox.style.display = 'none';
-        downloadBox.style.display = 'none';
-        loading.style.display = 'block';
-        
-        const formData = new FormData();
-        formData.append('title', title);
-        formData.append('instruction', instruction);
-        
-        uploadedFiles.forEach(file => {
-            formData.append('files', file);
-        });
-        
-        try {
-            const response = await fetch('/process-report', {
-                method: 'POST',
-                body: formData
-            });
+                <button type="submit" class="btn btn-primary w-100 fw-bold py-2" id="submit-btn">
+                    Google検索と連動してレポートを生成する
+                </button>
+            </form>
+        </div>
+
+        <div id="loading" class="text-center d-none my-4">
+            <div class="spinner-border text-primary mb-2" role="status"></div>
+            <p class="fw-semibold text-primary" id="loading-text">Geminiが資料を解析し、自動Googleクローリングを併用してレポートを執筆中...</p>
+        </div>
+
+        <div id="result-section" class="card p-4 d-none">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="m-0 fw-bold">2. 生成されたレポート結果</h4>
+                <button class="btn btn-success fw-bold" id="download-btn">Word (.docx) をダウンロード</button>
+            </div>
             
-            const data = await response.json();
-            
-            if (response.ok) {
-                resultBox.innerText = data.result;
-                resultBox.style.display = 'block';
-                
-                currentTitle = title;
-                currentResult = data.result;
-                downloadBox.style.display = 'block';
-            } else {
-                alert('エラーが発生しました: ' + data.detail);
+            <div id="result-display" class="mb-4"></div>
+
+            <hr>
+
+            <div class="bg-light p-3 rounded">
+                <h5 class="fw-bold text-dark mb-2">🔄 AIへの追加修正・わがまま指示</h5>
+                <p class="small text-muted mb-2">生成された文章に納得がいかない場合、ここに文句を書けばその通りに書き直してくれます。</p>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="edit-instruction" placeholder="例: 考察の3番目をもっと専門用語を使って肉付けして。数式を交えて解説を追加して。">
+                    <button class="btn btn-warning fw-bold" id="edit-btn">この指示で修正する</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentResultText = "";
+        let authToken = localStorage.getItem("auth_token") || "";
+
+        // 🔑 起動時にログイン状態をチェックする関数
+        async function checkLogin() {
+            if (!authToken) {
+                showLogin();
+                return;
             }
-        } catch (error) {
-            alert('サーバーとの通信に失敗しました。');
-        } finally {
-            loading.style.display = 'none';
+            // 保存されているトークンが有効かサーバーに聞いてみる
+            try {
+                const response = await fetch("/auth-check", {
+                    headers: { "Authorization": `Basic ${authToken}` }
+                });
+                if (response.ok) {
+                    showMain();
+                } else {
+                    showLogin();
+                }
+            } catch (err) {
+                showLogin();
+            }
         }
-    });
 
-    document.getElementById('btn-docx').addEventListener('click', async () => {
-        try {
-            const response = await fetch('/download/docx', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: currentTitle, result: currentResult })
+        function showLogin() {
+            document.getElementById("login-section").classList.remove("d-none");
+            document.getElementById("main-section").classList.add("d-none");
+        }
+
+        function showMain() {
+            document.getElementById("login-section").classList.add("d-none");
+            document.getElementById("main-section").classList.remove("d-none");
+        }
+
+        // 🔑 ログインフォームが送信されたとき
+        document.getElementById("login-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const u = document.getElementById("login-username").value;
+            const p = document.getElementById("login-password").value;
+            const errorDiv = document.getElementById("login-error");
+
+            // ユーザー名とパスワードをBasic認証用のBase64トークンに変換
+            const token = btoa(`${u}:${p}`);
+
+            try {
+                const response = await fetch("/auth-check", {
+                    headers: { "Authorization": `Basic ${token}` }
+                });
+                if (response.ok) {
+                    authToken = token;
+                    localStorage.setItem("auth_token", token); // ブラウザに記憶
+                    errorDiv.classList.add("d-none");
+                    showMain();
+                } else {
+                    errorDiv.classList.remove("d-none");
+                }
+            } catch (err) {
+                alert("通信エラーが発生しました。");
+            }
+        });
+
+        // 🚪 ログアウトボタン
+        document.getElementById("logout-btn").addEventListener("click", () => {
+            localStorage.removeItem("auth_token");
+            authToken = "";
+            location.reload();
+        });
+
+        // 📝 新規生成ボタンが押されたとき
+        document.getElementById("report-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById("submit-btn");
+            const loading = document.getElementById("loading");
+            const resultSection = document.getElementById("result-section");
+            
+            submitBtn.disabled = true;
+            loading.classList.remove("d-none");
+            document.getElementById("loading-text").innerText = "Geminiが資料を解析し、自動Googleクローリングを併用してレポートを執筆中...";
+            resultSection.classList.add("d-none");
+
+            const formData = new FormData();
+            formData.append("title", document.getElementById("title").value);
+            formData.append("report_type", document.getElementById("report_type").value);
+            formData.append("instruction", document.getElementById("instruction").value);
+            
+            const fileInput = document.getElementById("files");
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append("files", fileInput.files[i]);
+            }
+
+            try {
+                const response = await fetch("/process-report", { 
+                    method: "POST", 
+                    body: formData,
+                    headers: { "Authorization": `Basic ${authToken}` } // 🔑 認証情報を付与
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentResultText = data.result;
+                    document.getElementById("result-display").innerText = currentResultText;
+                    resultSection.classList.remove("d-none");
+                    window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' });
+                } else {
+                    alert("エラーが発生しました: " + (data.detail || "不明なエラー"));
+                }
+            } catch (err) {
+                alert("通信エラーが発生しました。");
+            } finally {
+                submitBtn.disabled = false;
+                loading.classList.add("d-none");
+            }
+        });
+
+        // 🔄 追加修正ボタンが押されたとき
+        document.getElementById("edit-btn").addEventListener("click", async () => {
+            const editInstruction = document.getElementById("edit-instruction").value;
+            if (!editInstruction) return alert("修正の指示を入力してください.");
+
+            const editBtn = document.getElementById("edit-btn");
+            const loading = document.getElementById("loading");
+            
+            editBtn.disabled = true;
+            loading.classList.remove("d-none");
+            document.getElementById("loading-text").innerText = "AIが指示通りにレポートを修正・肉付け中...";
+
+            try {
+                const response = await fetch("/edit-report", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Basic ${authToken}` // 🔑 認証情報を付与
+                    },
+                    body: JSON.stringify({
+                        title: document.getElementById("title").value,
+                        current_result: currentResultText,
+                        edit_instruction: editInstruction
+                    })
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    currentResultText = data.result;
+                    document.getElementById("result-display").innerText = currentResultText;
+                    document.getElementById("edit-instruction").value = ""; 
+                    alert("修正が完了しました！");
+                } else {
+                    alert("修正エラー: " + data.detail);
+                }
+            } catch (err) {
+                alert("通信エラーが発生しました。");
+            } finally {
+                editBtn.disabled = false;
+                loading.classList.add("d-none");
+            }
+        });
+
+        // 💾 Wordダウンロードボタンが押されたとき
+        document.getElementById("download-btn").addEventListener("click", async () => {
+            const title = document.getElementById("title").value;
+            const response = await fetch("/download/docx", {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Basic ${authToken}` // 🔑 認証情報を付与
+                },
+                body: JSON.stringify({ title: title, result: currentResultText })
             });
             
             if (response.ok) {
                 const blob = await response.blob();
                 const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
+                const a = document.createElement("a");
                 a.href = url;
-                a.download = `${currentTitle}.docx`;
+                a.download = `${title}.docx`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
-                window.URL.revokeObjectURL(url);
             } else {
-                alert('Wordファイルの作成に失敗しました。');
+                alert("ダウンロードに失敗しました。");
             }
-        } catch (error) {
-            alert('通信エラーが発生しました。');
-        }
-    });
-</script>
+        });
 
+        // 🚀 ページ読み込み時にログインチェックを実行
+        checkLogin();
+    </script>
 </body>
 </html>
