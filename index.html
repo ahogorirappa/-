@@ -41,6 +41,25 @@
         .file-badge { background-color: #e2e8f0; color: #334155; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
         .file-remove { color: #ef4444; cursor: pointer; font-weight: bold; font-size: 16px; }
         
+        /* 📜 【新設】ChatGPT風・過去ログサイドバー用のカスタムスタイル */
+        .sidebar-card { min-height: 600px; background-color: #1e293b; color: #f8fafc; border-radius: 12px; }
+        .history-item { 
+            background-color: transparent !important; 
+            color: #94a3b8 !important; 
+            border: none !important; 
+            padding: 10px 12px !important; 
+            font-size: 13.5px; 
+            cursor: pointer; 
+            border-radius: 8px; 
+            text-align: left;
+            text-overflow: ellipsis; 
+            white-space: nowrap; 
+            overflow: hidden; 
+            transition: all 0.2s;
+        }
+        .history-item:hover { background-color: #334155 !important; color: #ffffff !important; }
+        .history-item.active { background-color: #4f46e5 !important; color: #ffffff !important; font-weight: bold; }
+        
         .login-container { max-width: 400px; margin-top: 100px; }
         .d-none { display: none !important; }
     </style>
@@ -66,76 +85,96 @@
         </div>
     </div>
 
-    <div id="main-section" class="container py-5 d-none" style="max-width: 900px;">
-        <div class="d-flex justify-content-between align-items-center mb-5">
+    <div id="main-section" class="container-fluid px-4 py-4 d-none">
+        <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
                 <h1 class="fw-bold text-dark m-0">⚡ レポート自動生成・進化型便利屋 ⚡</h1>
-                <p class="text-muted m-0">OpenClaw自動巡回 ＆ 写真データ自動埋め込み配置モデル</p>
+                <p class="text-muted m-0">OpenClaw自動巡回 ＆ 過去ログ自動保存サイドバー搭載モデル</p>
             </div>
             <button class="btn btn-outline-danger btn-sm fw-bold" id="logout-btn">ログアウト</button>
         </div>
 
-        <div class="card p-4 mb-4">
-            <h4 class="mb-3 fw-bold">1. 新規レポートの生成</h4>
-            <form id="report-form">
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">レポートのタイトル</label>
-                    <input type="text" class="form-control" id="title" placeholder="例: インバータ応用回路における高調波抑制技術" required>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">レポートの種類（構成の自動切り替え）</label>
-                    <select class="form-select" id="report_type" required>
-                        <option value="experiment">🧪 電気電子工学実験用 (目的/原理/方法/結果/考察/結論)</option>
-                        <option value="application_basic">💡 電気応用用：発展回路なし (概要/原理/社会実装/課題/展望)</option>
-                        <option value="application_advanced">⚡ 電気応用用：発展回路あり (概要/原理/【発展回路の動作解析】/社会実装/課題/展望)</option>
-                    </select>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">追加の作成指示・メモ（自由入力）</label>
-                    <textarea class="form-control" id="instruction" rows="3" placeholder="例: 発電回路のFETのスイッチング損失に焦点を当てて。である調で。"></textarea>
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">参考資料ファイル (PDF・画像 / 1つずつ何回でも追加可能)</label>
-                    <input type="file" class="form-control" id="main-file-input">
-                    <div id="main-file-list" class="mt-2 d-flex flex-wrap gap-2"></div>
-                </div>
-
-                <button type="submit" class="btn btn-primary w-100 fw-bold py-2" id="submit-btn">
-                    OpenClawを潜入させてレポートを生成する
-                </button>
-            </form>
-        </div>
-
-        <div id="loading" class="text-center d-none my-4">
-            <div class="spinner-border text-primary mb-2" role="status"></div>
-            <p class="fw-semibold text-primary" id="loading-text">エージェントが稼働中...</p>
-        </div>
-
-        <div id="result-section" class="card p-4 d-none">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h4 class="m-0 fw-bold">2. 生成されたレポート結果</h4>
-                <button class="btn btn-success fw-bold" id="download-btn">Word (.docx) をダウンロード</button>
-            </div>
+        <div class="row">
             
-            <div id="result-display" class="mb-4"></div>
+            <div class="col-md-3 mb-4">
+                <div class="card p-3 sidebar-card d-flex flex-column">
+                    <h5 class="fw-bold mb-3 text-light border-bottom pb-2 d-flex justify-content-between align-items-center">
+                        <span>📜 作成レポート履歴</span>
+                        <span class="badge bg-secondary id="history-count" style="font-size: 11px;">0</span>
+                    </h5>
+                    <div id="history-list" class="list-group list-group-flush overflow-auto flex-grow-1" style="max-height: 520px;">
+                        </div>
+                    <button class="btn btn-outline-danger btn-sm w-100 mt-3 fw-semibold" id="clear-history-btn" style="font-size: 12px;">
+                        すべての履歴ログを消去
+                    </button>
+                </div>
+            </div>
 
-            <hr>
+            <div class="col-md-9">
+                <div class="card p-4 mb-4">
+                    <h4 class="mb-3 fw-bold">1. 新規レポートの生成</h4>
+                    <form id="report-form">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">レポートのタイトル</label>
+                            <input type="text" class="form-control" id="title" placeholder="例: インバータ応用回路における高調波抑制技術" required>
+                        </div>
 
-            <div class="bg-light p-3 rounded">
-                <h5 class="fw-bold text-dark mb-2">🔄 AIへの追加修正・わがまま指示（ファイル追加対応）</h5>
-                <p class="small text-muted mb-2">生成後に、さらに追加の実験データ画像やPDFを添付して書き直させることができます。</p>
-                <div class="mb-2">
-                    <input type="text" class="form-control mb-2" id="edit-instruction" placeholder="例: 新しく追加した資料のデータをもとに、高調波の考察を肉付けして。">
-                    <div class="input-group">
-                        <input type="file" class="form-control" id="edit-file-input" style="max-width: 300px;">
-                        <button class="btn btn-warning fw-bold" id="edit-btn">この指示とファイルで修正する</button>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">レポートの種類（構成の自動切り替え）</label>
+                            <select class="form-select" id="report_type" required>
+                                <option value="experiment">🧪 電気電子工学実験用 (目的/原理/方法/結果/考察/結論)</option>
+                                <option value="application_basic">💡 電気応用用：発展回路なし (概要/原理/社会実装/課題/展望)</option>
+                                <option value="application_advanced">⚡ 電気応用用：発展回路あり (概要/原理/【発展回路の動作解析】/社会実装/課題/展望)</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">追加の作成指示・メモ（自由入力）</label>
+                            <textarea class="form-control" id="instruction" rows="3" placeholder="例: 発電回路のFETのスイッチング損失に焦点を当てて。である調で。"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">参考資料ファイル (PDF・画像 / 1つずつ何回でも追加可能)</label>
+                            <input type="file" class="form-control" id="main-file-input">
+                            <div id="main-file-list" class="mt-2 d-flex flex-wrap gap-2"></div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2" id="submit-btn">
+                            OpenClawを潜入させてレポートを生成する
+                        </button>
+                    </form>
+                </div>
+
+                <div id="loading" class="text-center d-none my-4">
+                    <div class="spinner-border text-primary mb-2" role="status"></div>
+                    <p class="fw-semibold text-primary" id="loading-text">エージェントが稼働中...</p>
+                </div>
+
+                <div id="result-section" class="card p-4 d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="m-0 fw-bold">2. 生成されたレポート結果</h4>
+                        <button class="btn btn-success fw-bold" id="download-btn">Word (.docx) をダウンロード</button>
+                    </div>
+                    
+                    <div id="result-display" class="mb-4"></div>
+
+                    <hr>
+
+                    <div class="bg-light p-3 rounded">
+                        <h5 class="fw-bold text-dark mb-2">🔄 AIへの追加修正・わがまま指示（ファイル追加対応）</h5>
+                        <p class="small text-muted mb-2">生成後に、さらに追加の実験データ画像やPDFを添付して書き直させることができます。</p>
+                        <div class="mb-2">
+                            <input type="text" class="form-control mb-2" id="edit-instruction" placeholder="例: 新しく追加した資料のデータをもとに、高調波の考察を肉付けして。">
+                            <div class="input-group">
+                                <input type="file" class="form-control" id="edit-file-input" style="max-width: 300px;">
+                                <button class="btn btn-warning fw-bold" id="edit-btn">この指示とファイルで修正する</button>
+                            </div>
+                        </div>
+                        <div id="edit-file-list" class="d-flex flex-wrap gap-2 mt-2"></div>
                     </div>
                 </div>
-                <div id="edit-file-list" class="d-flex flex-wrap gap-2 mt-2"></div>
             </div>
+
         </div>
     </div>
 
@@ -145,12 +184,15 @@
 
         let mainFilesArray = [];
         let editFilesArray = [];
+        
+        // 📜 【新設】ブラウザのlocalStorageからレポート履歴を読み込む
+        let reportHistory = JSON.parse(localStorage.getItem("report_history")) || [];
 
         async function checkLogin() {
             if (!authToken) { showLogin(); return; }
             try {
                 const response = await fetch("/auth-check", { headers: { "Authorization": `Basic ${authToken}` } });
-                if (response.ok) { showMain(); } else { showLogin(); }
+                if (response.ok) { showMain(); renderHistory(); } else { showLogin(); }
             } catch (err) { showLogin(); }
         }
 
@@ -178,6 +220,7 @@
                     localStorage.setItem("auth_token", token);
                     errorDiv.classList.add("d-none");
                     showMain();
+                    renderHistory(); // ログイン成功時に履歴を描画
                 } else { errorDiv.classList.remove("d-none"); }
             } catch (err) { alert("通信エラーが発生しました。"); }
         });
@@ -186,6 +229,64 @@
             localStorage.removeItem("auth_token");
             authToken = "";
             location.reload();
+        });
+
+        // 📜 【新設】サイドバーの履歴ログを動的に描画する関数（まさにChatGPT仕様）
+        function renderHistory() {
+            const historyList = document.getElementById("history-list");
+            const countBadge = document.getElementById("history-count");
+            historyList.innerHTML = "";
+            countBadge.innerText = reportHistory.length;
+            
+            if (reportHistory.length === 0) {
+                historyList.innerHTML = '<p class="text-muted small text-center my-4">作成ログはありません</p>';
+                return;
+            }
+            
+            reportHistory.forEach((item, index) => {
+                const btn = document.createElement("button");
+                btn.className = "list-group-item list-group-item-action history-item";
+                btn.innerText = `📄 ${item.title}`;
+                btn.title = item.title;
+                
+                // 過去ログがクリックされたら、一瞬でその中身を画面に復元表示する！
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".history-item").forEach(b => b.classList.remove("active"));
+                    btn.classList.add("active");
+                    
+                    document.getElementById("title").value = item.title;
+                    currentResultText = item.result;
+                    renderFormattedResult(currentResultText);
+                    
+                    document.getElementById("result-section").classList.remove("d-none");
+                    window.scrollTo({ top: document.getElementById("result-section").offsetTop, behavior: 'smooth' });
+                });
+                
+                historyList.appendChild(btn);
+            });
+        }
+
+        // 📜 【新設】新しいレポートを履歴ログに保存・上書きする関数
+        function saveToHistory(title, result) {
+            // 重複タイトルがあれば古い方を削除（最新を一番上に持ってくる）
+            reportHistory = reportHistory.filter(item => item.title !== title);
+            reportHistory.unshift({ title: title, result: result });
+            
+            // ログが多すぎるとブラウザが重くなるので最大40件に制限
+            if (reportHistory.length > 40) reportHistory.pop();
+            
+            localStorage.setItem("report_history", JSON.stringify(reportHistory));
+            renderHistory();
+        }
+
+        // 📜 【新設】すべての履歴ログをまとめて消去するボタン
+        document.getElementById("clear-history-btn").addEventListener("click", () => {
+            if (confirm("これまでに作成したすべてのレポート履歴ログを消去しますか？（Wordをダウンロードしていない場合はデータが消えます）")) {
+                reportHistory = [];
+                localStorage.removeItem("report_history");
+                renderHistory();
+                document.getElementById("result-section").classList.add("d-none");
+            }
         });
 
         function renderFilesBadge(listId, filesArray) {
@@ -247,7 +348,6 @@
                     displayDiv.appendChild(el);
                     i++;
                 } else if (trimmed.startsWith("[IMAGE: ") && trimmed.endsWith("]")) {
-                    // 📐【修正箇所】 Pythonの endswith から JavaScript 正式の endsWith へ修正完了！
                     const imgFilename = trimmed.replace("[IMAGE: ", "").replace("]", "");
                     const container = document.createElement("div");
                     container.className = "report-img-container";
@@ -314,7 +414,8 @@
             resultSection.classList.add("d-none");
 
             const formData = new FormData();
-            formData.append("title", document.getElementById("title").value);
+            const reportTitle = document.getElementById("title").value;
+            formData.append("title", reportTitle);
             formData.append("report_type", document.getElementById("report_type").value);
             formData.append("instruction", document.getElementById("instruction").value);
             
@@ -328,6 +429,10 @@
                 if (response.ok) {
                     currentResultText = data.result;
                     renderFormattedResult(currentResultText);
+                    
+                    // 📜 生成成功時に自動で過去ログにコミット
+                    saveToHistory(reportTitle, currentResultText);
+                    
                     resultSection.classList.remove("d-none");
                     window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' });
                 } else { alert("エラー: " + (data.detail || "不明なエラー")); }
@@ -345,7 +450,8 @@
             document.getElementById("loading-text").innerText = "AIが追加の添付ファイルと指示に従って数式・文章・画像を再編集中...";
 
             const formData = new FormData();
-            formData.append("title", document.getElementById("title").value);
+            const reportTitle = document.getElementById("title").value;
+            formData.append("title", reportTitle);
             formData.append("current_result", currentResultText);
             formData.append("edit_instruction", editInstruction);
             
@@ -361,6 +467,9 @@
                 if (response.ok) {
                     currentResultText = data.result;
                     renderFormattedResult(currentResultText);
+                    
+                    // 📜 修正・肉付けが成功したときも、最新版データでログを自動更新！
+                    saveToHistory(reportTitle, currentResultText);
                     
                     editFilesArray = [];
                     document.getElementById("edit-file-list").innerHTML = "";
