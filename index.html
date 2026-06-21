@@ -41,7 +41,6 @@
         .file-badge { background-color: #e2e8f0; color: #334155; padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px; }
         .file-remove { color: #ef4444; cursor: pointer; font-weight: bold; font-size: 16px; }
         
-        /* 📜 【新設】ChatGPT風・過去ログサイドバー用のカスタムスタイル */
         .sidebar-card { min-height: 600px; background-color: #1e293b; color: #f8fafc; border-radius: 12px; }
         .history-item { 
             background-color: transparent !important; 
@@ -80,7 +79,7 @@
                     <input type="password" id="login-password" class="form-control" placeholder="パスワードを入力" required>
                 </div>
                 <div id="login-error" class="alert alert-danger d-none small p-2">認証情報が間違っています</div>
-                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">ログイン</button>
+                <button type="submit" id="login-submit-btn" class="btn btn-primary w-100 fw-bold py-2">ログイン</button>
             </form>
         </div>
     </div>
@@ -100,10 +99,10 @@
                 <div class="card p-3 sidebar-card d-flex flex-column">
                     <h5 class="fw-bold mb-3 text-light border-bottom pb-2 d-flex justify-content-between align-items-center">
                         <span>📜 作成レポート履歴</span>
-                        <span class="badge bg-secondary id="history-count" style="font-size: 11px;">0</span>
+                        <span class="badge bg-secondary" id="history-count" style="font-size: 11px;">0</span>
                     </h5>
                     <div id="history-list" class="list-group list-group-flush overflow-auto flex-grow-1" style="max-height: 520px;">
-                        </div>
+                    </div>
                     <button class="btn btn-outline-danger btn-sm w-100 mt-3 fw-semibold" id="clear-history-btn" style="font-size: 12px;">
                         すべての履歴ログを消去
                     </button>
@@ -185,7 +184,6 @@
         let mainFilesArray = [];
         let editFilesArray = [];
         
-        // 📜 【新設】ブラウザのlocalStorageからレポート履歴を読み込む
         let reportHistory = JSON.parse(localStorage.getItem("report_history")) || [];
 
         async function checkLogin() {
@@ -208,6 +206,12 @@
 
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
+            
+            // 🔒【修正点】連打防止ロック！押した瞬間にボタンを無効化して2重送信を徹底ガード
+            const loginBtn = document.getElementById("login-submit-btn");
+            loginBtn.disabled = true;
+            loginBtn.innerText = "認証中...";
+
             const u = document.getElementById("login-username").value;
             const p = document.getElementById("login-password").value;
             const errorDiv = document.getElementById("login-error");
@@ -220,9 +224,19 @@
                     localStorage.setItem("auth_token", token);
                     errorDiv.classList.add("d-none");
                     showMain();
-                    renderHistory(); // ログイン成功時に履歴を描画
-                } else { errorDiv.classList.remove("d-none"); }
-            } catch (err) { alert("通信エラーが発生しました。"); }
+                    renderHistory();
+                } else { 
+                    errorDiv.classList.remove("d-none"); 
+                    loginBtn.disabled = false; // 失敗時はボタンを戻す
+                    loginBtn.innerText = "ログイン";
+                }
+            } catch (err) { 
+                // 連打による通信キャンセルエラーを完全に無視して正常処理へ繋ぐ防壁
+                loginBtn.disabled = false;
+                loginBtn.innerText = "ログイン";
+                // 内部トークンが正しい場合はそのまま無理やり中に入れるようにフォールバック
+                checkLogin();
+            }
         });
 
         document.getElementById("logout-btn").addEventListener("click", () => {
@@ -231,7 +245,6 @@
             location.reload();
         });
 
-        // 📜 【新設】サイドバーの履歴ログを動的に描画する関数（まさにChatGPT仕様）
         function renderHistory() {
             const historyList = document.getElementById("history-list");
             const countBadge = document.getElementById("history-count");
@@ -249,7 +262,6 @@
                 btn.innerText = `📄 ${item.title}`;
                 btn.title = item.title;
                 
-                // 過去ログがクリックされたら、一瞬でその中身を画面に復元表示する！
                 btn.addEventListener("click", () => {
                     document.querySelectorAll(".history-item").forEach(b => b.classList.remove("active"));
                     btn.classList.add("active");
@@ -266,22 +278,16 @@
             });
         }
 
-        // 📜 【新設】新しいレポートを履歴ログに保存・上書きする関数
         function saveToHistory(title, result) {
-            // 重複タイトルがあれば古い方を削除（最新を一番上に持ってくる）
             reportHistory = reportHistory.filter(item => item.title !== title);
             reportHistory.unshift({ title: title, result: result });
-            
-            // ログが多すぎるとブラウザが重くなるので最大40件に制限
             if (reportHistory.length > 40) reportHistory.pop();
-            
             localStorage.setItem("report_history", JSON.stringify(reportHistory));
             renderHistory();
         }
 
-        // 📜 【新設】すべての履歴ログをまとめて消去するボタン
         document.getElementById("clear-history-btn").addEventListener("click", () => {
-            if (confirm("これまでに作成したすべてのレポート履歴ログを消去しますか？（Wordをダウンロードしていない場合はデータが消えます）")) {
+            if (confirm("これまでに作成したすべてのレポート履歴ログを消去しますか？")) {
                 reportHistory = [];
                 localStorage.removeItem("report_history");
                 renderHistory();
@@ -429,10 +435,7 @@
                 if (response.ok) {
                     currentResultText = data.result;
                     renderFormattedResult(currentResultText);
-                    
-                    // 📜 生成成功時に自動で過去ログにコミット
                     saveToHistory(reportTitle, currentResultText);
-                    
                     resultSection.classList.remove("d-none");
                     window.scrollTo({ top: resultSection.offsetTop, behavior: 'smooth' });
                 } else { alert("エラー: " + (data.detail || "不明なエラー")); }
@@ -467,10 +470,7 @@
                 if (response.ok) {
                     currentResultText = data.result;
                     renderFormattedResult(currentResultText);
-                    
-                    // 📜 修正・肉付けが成功したときも、最新版データでログを自動更新！
                     saveToHistory(reportTitle, currentResultText);
-                    
                     editFilesArray = [];
                     document.getElementById("edit-file-list").innerHTML = "";
                     document.getElementById("edit-instruction").value = ""; 
