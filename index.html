@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIレポートジェネレーター Pro (Hybrid)</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f0f4f8;
+            margin: 0;
+            padding: 40px 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 650px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+        }
+        h1 {
+            text-align: center;
+            color: #2C3E50;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #34495E;
+        }
+        input[type="text"], textarea, input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+            background-color: #f8fafc;
+        }
+        input[type="file"] {
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .file-list-container {
+            margin-top: 10px;
+        }
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .file-delete {
+            color: #ef4444;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .file-delete:hover {
+            background: #fee2e2;
+            border-radius: 4px;
+        }
+        button {
+            width: 100%;
+            padding: 14px;
+            background-color: #1ABC9C;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #16A085;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+            color: #7f8c8d;
+            margin-top: 20px;
+            font-style: italic;
+        }
+        .result-box {
+            margin-top: 30px;
+            padding: 25px;
+            background: #fdfefe;
+            border-top: 4px solid #1ABC9C;
+            border-radius: 6px;
+            white-space: pre-wrap;
+            display: none;
+            line-height: 1.7;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .download-box {
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+        }
+        .btn-docx {
+            background-color: #2b579a;
+            width: auto;
+            display: inline-block;
+            padding: 12px 25px;
+            font-size: 15px;
+        }
+        .btn-docx:hover { background-color: #1e3d6b; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📊 AIレポートジェネレーター Pro</h1>
+    
+    <div class="form-group">
+        <label for="title">作成するレポートのタイトル</label>
+        <input type="text" id="title" placeholder="例: 2026年度 マーケット動向調査報告書">
+    </div>
+
+    <div class="form-group">
+        <label for="pdf-file">参考資料（選ぶたびに追加されていきます）</label>
+        <input type="file" id="pdf-file" accept=".pdf,image/*" multiple>
+        <div id="file-list" class="file-list-container"></div>
+    </div>
+    
+    <div class="form-group">
+        <label for="instruction">追加の指示やメモ（任意）</label>
+        <textarea id="instruction" rows="3" placeholder="例: OpenClawのデータから最新の競合分析を強調して清書して。"></textarea>
+    </div>
+    
+    <button id="submit-btn">OpenClaw×Geminiでレポートを作成</button>
+    
+    <div id="loading" class="loading">⏳ OpenClawがネット調査を行い、Geminiが爆速で清書しています...（数分かかる場合があります）</div>
+    <div id="result" class="result-box"></div>
+    
+    <div id="download-box" class="download-box">
+        <button id="btn-docx" class="btn-docx">📝 Word（.docx）として保存</button>
+    </div>
+</div>
+
+<script>
+    let currentTitle = "";
+    let currentResult = "";
+    let uploadedFiles = [];
+
+    document.getElementById('pdf-file').addEventListener('change', (e) => {
+        const files = e.target.files;
+        for (let i = 0; i < files.length; i++) {
+            uploadedFiles.push(files[i]);
+        }
+        renderFileList();
+        e.target.value = '';
+    });
+
+    function renderFileList() {
+        const fileListDiv = document.getElementById('file-list');
+        fileListDiv.innerHTML = '';
+        
+        uploadedFiles.forEach((file, index) => {
+            const item = document.createElement('div');
+            item.className = 'file-item';
+            item.innerHTML = `
+                <span>📄 ${file.name}</span>
+                <span class="file-delete" onclick="removeFile(${index})">✕ 削除</span>
+            `;
+            fileListDiv.appendChild(item);
+        });
+    }
+
+    window.removeFile = function(index) {
+        uploadedFiles.splice(index, 1);
+        renderFileList();
+    };
+
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+        const title = document.getElementById('title').value;
+        const instruction = document.getElementById('instruction').value;
+        const resultBox = document.getElementById('result');
+        const downloadBox = document.getElementById('download-box');
+        const loading = document.getElementById('loading');
+        
+        if (!title) { alert('レポートのタイトルを入力してください！'); return; }
+        if (uploadedFiles.length === 0) { alert('参考資料のファイルを選択してください！'); return; }
+        
+        resultBox.style.display = 'none';
+        downloadBox.style.display = 'none';
+        loading.style.display = 'block';
+        
+        const formData = new FormData();
+        formData.append('title', title);
+        formData.append('instruction', instruction);
+        
+        uploadedFiles.forEach(file => {
+            formData.append('files', file);
+        });
+        
+        try {
+            const response = await fetch('/process-report', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                resultBox.innerText = data.result;
+                resultBox.style.display = 'block';
+                
+                currentTitle = title;
+                currentResult = data.result;
+                downloadBox.style.display = 'block';
+            } else {
+                alert('エラーが発生しました: ' + data.detail);
+            }
+        } catch (error) {
+            alert('サーバーとの通信に失敗しました。');
+        } finally {
+            loading.style.display = 'none';
+        }
+    });
+
+    document.getElementById('btn-docx').addEventListener('click', async () => {
+        try {
+            const response = await fetch('/download/docx', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: currentTitle, result: currentResult })
+            });
+            
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${currentTitle}.docx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
+                alert('Wordファイルの作成に失敗しました。');
+            }
+        } catch (error) {
+            alert('通信エラーが発生しました。');
+        }
+    });
+</script>
+
+</body>
+</html>
