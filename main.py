@@ -13,6 +13,9 @@ from google.genai import types
 from dotenv import load_dotenv
 from docx import Document
 from docx.shared import Inches
+# 📐 Wordの本物の数式オブジェクトを生成するための特殊インポート
+from docx.oxml import parse_xml
+from docx.oxml.ns import nsdecls
 import httpx
 
 load_dotenv()
@@ -51,7 +54,7 @@ class DownloadRequest(BaseModel):
 # 🦞 OpenClaw 自律クローリング実行ヘルパー
 # ----------------------------------------------------------------
 async def run_openclaw_research(title: str) -> str:
-    prompt_for_claw = f"「{title}」について、電気工学・実験原理の観点から最新の技術動向、回路構成、数式的な背景をWebブラウザ等で自動検索・クローリングし, 詳細な調査結果を日本語のMarkdownテキストとしてまとめてください。"
+    prompt_for_claw = f"「{title}」について、電気工学・実験原理の観点から最新の技術動向、回路構成、数式的な背景をWebブラウザ等で自動検索・クローリングし、詳細な調査結果を日本語のMarkdownテキストとしてまとめてください。"
     
     async with httpx.AsyncClient(timeout=120.0) as http_client:
         try:
@@ -71,16 +74,33 @@ async def run_openclaw_research(title: str) -> str:
             return f"【システムノート】OpenClawデーモンが不通のため、標準検索でフォールバックします。 (詳細: {str(e)})"
 
 # ----------------------------------------------------------------
-# 📐 Word用の数式パース＆書き込みヘルパー
+# 📐 【劇的進化】Word用の本物の数式オブジェクト自動生成ヘルパー
 # ----------------------------------------------------------------
 def add_math_to_paragraph(paragraph, latex_str):
     try:
-        clean_latex = latex_str.strip().replace("\n", "")
-        if clean_latex:
-            run = paragraph.add_run(f" {clean_latex} ")
-            run.font.name = 'Cambria Math'
-            run.italic = True
+        s = latex_str.strip().replace("\n", "")
+        # LaTeXの特殊表記を、Wordの数式エンジンが最も綺麗に認識できる記号表現に自動コンバート
+        s = s.replace(r'\frac', '')
+        s = s.replace(r'\omega', 'ω')
+        s = s.replace(r'\pi', 'π')
+        s = s.replace(r'\int', '∫')
+        s = s.replace(r'\sum', '∑')
+        s = s.replace(r'\infty', '∞')
+        s = s.replace(r'\Delta', 'Δ')
+        s = s.replace(r'\cdot', '·')
+        s = s.replace(r'\boldsymbol', '')
+        s = s.replace(r'\cos', 'cos')
+        s = s.replace(r'\sin', 'sin')
+        s = s.replace(r'\text', '')
+        s = s.replace('{', '(').replace('}', ')')
+        
+        if s:
+            # 📐 Word公式の数式オブジェクト（oMath）のXML構造を直接生成して段落の末尾に埋め込む！
+            # これにより、Wordを開いたときに自動的に「数式ツール」のデザインとして美しく配置される
+            omath_xml = f'<m:oMath {nsdecls("m")}><m:r><m:t>{s}</m:t></m:r></m:oMath>'
+            paragraph._p.append(parse_xml(omath_xml))
     except:
+        # 万が一パースエラーが起きた場合は、生の文字列として安全にフォールバック
         paragraph.add_run(f" {latex_str} ")
 
 def parse_and_write_text_with_math(paragraph, text):
@@ -182,7 +202,7 @@ async def process_report(
             【レポート構成および記述内容の厳格な指定】
             [H1] 1. 総合概要 (Executive Summary)
             [H1] 2. 技術的背景および基本原理
-            [H1] 3. 発発展回路（応用回路）の構成と動作解析
+            [H1] 3. 発展回路（応用回路）の構成と動作解析
             [H1] 4. 現在の主な応用例・社会実装動向
             [H1] 5. 現状の技術的課題とその対策
             [H1] 6. 今後の展望および提言
@@ -218,6 +238,7 @@ async def process_report(
         
         【超重要ルール：数式のアカデミック化】
         ・数式や理論式を出力する場合は、必ずインライン数式（$E=mc^2$）または独立数式（$$数式$$）のLaTeX表記を使用してください。
+        ・ただし、Wordファイルにエクスポートされた際にも数式構造が絶対に崩れないよう、複雑すぎる分数のネスト（分数の中にさらに分数が入る構造）は避け、必要に応じて `a/b` などの直線的な表記を組み合わせ、Wordの数式コンポーネントが処理しやすいスマートな構造で出力してください。
         
         【超重要ルール：データ羅列の表形式化】
         ・測定データや解析結果の箇条書きの羅列を出力にそのまま含めず、必ず人間が見やすい「Markdownの表（テーブル）形式」へと自動的に変換・整理して出力してください。
@@ -326,14 +347,14 @@ async def edit_report(
 async def download_docx(request: DownloadRequest, username: str = Depends(authenticate)):
     doc = Document()
     
-    # 📄 【新設】1枚目を独立した「表紙専用ページ」にする自動改ページロジック
-    for _ in range(6): # タイトルの上に適度な余白（空行）を作って中央に寄せる
+    # 📄 1枚目を独立した「表紙専用ページ」にする自動改ページロジック
+    for _ in range(6): 
         doc.add_paragraph()
         
     title_heading = doc.add_heading(request.title, level=1)
-    title_heading.alignment = 1 # タイトル文字を中央揃えに配置
+    title_heading.alignment = 1 
     
-    doc.add_page_break() # 👈 ここで強制的にページを区切ることで、1枚目を完璧な表紙にする！
+    doc.add_page_break() 
     
     lines = request.result.split("\n")
     i = 0
